@@ -85,7 +85,7 @@ export default function Home() {
   function downloadMarkdown() {
     const blob = new Blob([document], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a") as HTMLAnchorElement;
+    const a = window.document.createElement("a") as HTMLAnchorElement;
     a.href = url;
     a.download = "企画書.md";
     a.click();
