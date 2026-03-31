@@ -266,8 +266,9 @@ export default function Home() {
 
         {/* Phase: hearing */}
         {phase === "hearing" && (
-          <div className="flex flex-col flex-1 gap-3 min-h-0">
-            <div className="flex-1 flex flex-col gap-3 overflow-y-auto pb-2">
+          <div className="flex flex-col flex-1 min-h-0 -mx-4 rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
+            {/* Chat area */}
+            <div className="flex-1 flex flex-col gap-3 overflow-y-auto px-4 py-4 bg-[#EEF2E6]">
               {messages.map((m, i) => (
                 <div
                   key={i}
@@ -276,15 +277,15 @@ export default function Home() {
                   }`}
                 >
                   {m.role === "assistant" && (
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-sm">
                       AI
                     </div>
                   )}
                   <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
+                    className={`max-w-[78%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap shadow-sm ${
                       m.role === "user"
-                        ? "bg-indigo-500 text-white rounded-br-md"
-                        : "bg-white text-gray-800 shadow-sm border border-gray-100 rounded-bl-md"
+                        ? "bg-[#06C755] text-white rounded-br-sm"
+                        : "bg-white text-gray-800 rounded-bl-sm"
                     }`}
                   >
                     {m.content}
@@ -293,10 +294,10 @@ export default function Home() {
               ))}
               {loading && (
                 <div className="flex items-end gap-2 justify-start">
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-sm">
                     AI
                   </div>
-                  <div className="bg-white rounded-2xl rounded-bl-md px-4 py-3 shadow-sm border border-gray-100">
+                  <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
                     <LoadingDots />
                   </div>
                 </div>
@@ -304,32 +305,37 @@ export default function Home() {
               <div ref={bottomRef} />
             </div>
 
-            <div className="flex gap-2 pt-1">
-              <input
-                className="flex-1 rounded-full border border-gray-200 bg-white px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                placeholder="返答を入力..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) sendMessage();
-                }}
-                disabled={loading}
-              />
+            {/* Input area */}
+            <div className="bg-white border-t border-gray-200 px-3 py-3 flex flex-col gap-2">
+              <div className="flex gap-2 items-center">
+                <input
+                  className="flex-1 rounded-full border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#06C755] focus:border-transparent"
+                  placeholder="返答を入力..."
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) sendMessage();
+                  }}
+                  disabled={loading}
+                />
+                <button
+                  onClick={sendMessage}
+                  disabled={!input.trim() || loading}
+                  className="w-10 h-10 rounded-full bg-[#06C755] text-white flex items-center justify-center disabled:opacity-40 transition hover:bg-[#05b34c] shrink-0"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                    <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+                  </svg>
+                </button>
+              </div>
               <button
-                onClick={sendMessage}
-                disabled={!input.trim() || loading}
-                className="px-5 py-3 rounded-full bg-indigo-500 text-white font-medium text-sm hover:bg-indigo-600 disabled:opacity-40 transition"
+                onClick={() => generateDocument(messages)}
+                disabled={loading || messages.length < 4}
+                className="w-full py-2 rounded-full border border-indigo-300 text-indigo-600 font-medium text-xs hover:bg-indigo-50 disabled:opacity-40 transition flex items-center justify-center gap-1.5"
               >
-                送信
+                <span>📄</span> 今すぐ企画書を生成する
               </button>
             </div>
-            <button
-              onClick={() => generateDocument(messages)}
-              disabled={loading || messages.length < 4}
-              className="w-full py-3 rounded-full border-2 border-indigo-300 text-indigo-600 font-medium text-sm hover:bg-indigo-50 disabled:opacity-40 transition flex items-center justify-center gap-2"
-            >
-              <span>📄</span> 今すぐ企画書を生成する
-            </button>
           </div>
         )}
 
