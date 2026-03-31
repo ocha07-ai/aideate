@@ -1,84 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
+import { renderMarkdown } from "@/app/components/render-markdown";
 
 type Message = { role: "user" | "assistant"; content: string };
 type Phase = "input" | "hearing" | "document";
-
-// Simple inline markdown renderer (no external dependencies)
-function renderMarkdown(text: string) {
-  const lines = text.split("\n");
-  const elements: React.ReactNode[] = [];
-  let listItems: string[] = [];
-
-  const flushList = (key: number) => {
-    if (listItems.length > 0) {
-      elements.push(
-        <ul key={`list-${key}`} className="list-disc list-inside space-y-1 my-2 pl-1">
-          {listItems.map((item, j) => (
-            <li key={j} className="text-sm text-gray-700 leading-relaxed">
-              {renderInline(item)}
-            </li>
-          ))}
-        </ul>
-      );
-      listItems = [];
-    }
-  };
-
-  const renderInline = (line: string): React.ReactNode => {
-    const parts = line.split(/(\*\*[^*]+\*\*)/g);
-    return parts.map((part, j) =>
-      part.startsWith("**") && part.endsWith("**") ? (
-        <strong key={j} className="font-semibold text-gray-800">
-          {part.slice(2, -2)}
-        </strong>
-      ) : (
-        part
-      )
-    );
-  };
-
-  lines.forEach((line, i) => {
-    if (line.startsWith("# ")) {
-      flushList(i);
-      elements.push(
-        <h1 key={i} className="text-2xl font-bold text-gray-900 mt-6 mb-3 first:mt-0">
-          {line.slice(2)}
-        </h1>
-      );
-    } else if (line.startsWith("## ")) {
-      flushList(i);
-      elements.push(
-        <h2 key={i} className="text-base font-bold text-indigo-700 mt-5 mb-2 pb-1 border-b border-indigo-100">
-          {line.slice(3)}
-        </h2>
-      );
-    } else if (line.startsWith("### ")) {
-      flushList(i);
-      elements.push(
-        <h3 key={i} className="text-sm font-semibold text-gray-800 mt-4 mb-1">
-          {line.slice(4)}
-        </h3>
-      );
-    } else if (line.startsWith("- ") || line.startsWith("* ")) {
-      listItems.push(line.slice(2));
-    } else if (line.trim() === "") {
-      flushList(i);
-      elements.push(<div key={i} className="h-1" />);
-    } else {
-      flushList(i);
-      elements.push(
-        <p key={i} className="text-sm text-gray-700 leading-relaxed">
-          {renderInline(line)}
-        </p>
-      );
-    }
-  });
-
-  flushList(lines.length);
-  return elements;
-}
 
 function LoadingDots() {
   return (
@@ -147,7 +74,19 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [document, setDocument] = useState("");
   const [copied, setCopied] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [sessionId, setSessionId] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let id = localStorage.getItem("aideate_session_id");
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem("aideate_session_id", id);
+    }
+    setSessionId(id);
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -212,6 +151,18 @@ export default function Home() {
     setLoading(false);
   }
 
+  async function saveProposal() {
+    if (!document || !sessionId) return;
+    setSaving(true);
+    await fetch("/api/proposals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: document, idea, sessionId }),
+    });
+    setSaving(false);
+    setSaved(true);
+  }
+
   function reset() {
     setPhase("input");
     setIdea("");
@@ -219,6 +170,7 @@ export default function Home() {
     setInput("");
     setDocument("");
     setCopied(false);
+    setSaved(false);
   }
 
   function downloadMarkdown() {
@@ -249,16 +201,24 @@ export default function Home() {
             アイデアを企画に変える
           </span>
         </div>
-        {phase !== "input" && (
-          <button
-            onClick={reset}
-            className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1.5 transition"
+        <div className="flex items-center gap-4">
+          <Link
+            href="/proposals"
+            className="text-sm text-indigo-600 hover:text-indigo-800 font-medium transition"
           >
-            <span>↩</span>
-            <span className="hidden sm:inline">最初からやり直す</span>
-            <span className="sm:hidden">やり直す</span>
-          </button>
-        )}
+            企画書一覧
+          </Link>
+          {phase !== "input" && (
+            <button
+              onClick={reset}
+              className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1.5 transition"
+            >
+              <span>↩</span>
+              <span className="hidden sm:inline">最初からやり直す</span>
+              <span className="sm:hidden">やり直す</span>
+            </button>
+          )}
+        </div>
       </header>
 
       <main className="flex-1 flex flex-col max-w-2xl w-full mx-auto px-4 py-8">
@@ -380,6 +340,13 @@ export default function Home() {
               <h2 className="text-xl font-bold text-gray-800">企画書</h2>
               <div className="flex gap-2">
                 <button
+                  onClick={saveProposal}
+                  disabled={loading || !document || saved || saving}
+                  className="px-4 py-2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-medium hover:opacity-90 disabled:opacity-40 transition"
+                >
+                  {saving ? "保存中..." : saved ? "✓ 保存済み" : "保存する"}
+                </button>
+                <button
                   onClick={copyToClipboard}
                   disabled={loading || !document}
                   className="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-600 text-sm font-medium hover:bg-gray-50 disabled:opacity-40 transition"
@@ -389,9 +356,9 @@ export default function Home() {
                 <button
                   onClick={downloadMarkdown}
                   disabled={loading || !document}
-                  className="px-4 py-2 rounded-full bg-indigo-500 text-white text-sm font-medium hover:bg-indigo-600 disabled:opacity-40 transition"
+                  className="px-4 py-2 rounded-full border border-gray-200 bg-white text-gray-600 text-sm font-medium hover:bg-gray-50 disabled:opacity-40 transition"
                 >
-                  ダウンロード
+                  DL
                 </button>
               </div>
             </div>
