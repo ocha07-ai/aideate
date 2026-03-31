@@ -74,6 +74,7 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState<"analyzing" | "generating" | null>(null);
   const [document, setDocument] = useState("");
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -142,7 +143,12 @@ export default function Home() {
 
   async function generateDocument(msgs: Message[]) {
     setLoading(true);
+    setLoadingStep("analyzing");
     setPhase("document");
+
+    // アニメーション演出：1.5秒後に「generating」ステップへ
+    setTimeout(() => setLoadingStep("generating"), 1500);
+
     const res = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -151,6 +157,7 @@ export default function Home() {
     const data = await res.json();
     setDocument(data.document);
     setLoading(false);
+    setLoadingStep(null);
   }
 
   async function saveProposal() {
@@ -403,13 +410,46 @@ export default function Home() {
               </div>
             </div>
             {loading ? (
-              <div className="bg-white rounded-2xl border border-gray-200 p-16 shadow-sm flex flex-col items-center gap-4 text-gray-400">
-                <LoadingDots />
-                <span className="text-sm">企画書を生成中...</span>
+              <div className="bg-white rounded-2xl border border-gray-200 p-12 shadow-sm flex flex-col items-center gap-6">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-200 animate-pulse">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-white">
+                    <path fillRule="evenodd" d="M5.625 1.5c-1.036 0-1.875.84-1.875 1.875v17.25c0 1.035.84 1.875 1.875 1.875h12.75c1.035 0 1.875-.84 1.875-1.875V12.75A3.75 3.75 0 0016.5 9h-1.875a1.875 1.875 0 01-1.875-1.875V5.25A3.75 3.75 0 009 1.5H5.625zM7.5 15a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5A.75.75 0 017.5 15zm.75-6.75a.75.75 0 000 1.5H12a.75.75 0 000-1.5H8.25z" clipRule="evenodd" />
+                    <path d="M12.971 1.816A5.23 5.23 0 0114.25 5.25v1.875c0 .207.168.375.375.375H16.5a5.23 5.23 0 013.434 1.279 9.768 9.768 0 00-6.963-6.963z" />
+                  </svg>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <LoadingDots />
+                  <span className="text-sm font-medium text-gray-700">
+                    {loadingStep === "analyzing" ? "ヒアリング内容を分析中..." : "企画書を生成中..."}
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    {loadingStep === "analyzing" ? "アイデアの可能性・競合・収益性を評価しています" : "詳細なロードマップと戦略を構築中です"}
+                  </span>
+                </div>
+                {/* Progress steps */}
+                <div className="flex items-center gap-3 text-xs text-gray-400">
+                  <span className={`flex items-center gap-1 ${loadingStep === "analyzing" ? "text-indigo-600 font-medium" : "text-emerald-600"}`}>
+                    {loadingStep === "analyzing" ? (
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse inline-block" />
+                    ) : (
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                    )}
+                    アイデア分析
+                  </span>
+                  <span className="text-gray-300">→</span>
+                  <span className={`flex items-center gap-1 ${loadingStep === "generating" ? "text-indigo-600 font-medium" : "text-gray-400"}`}>
+                    {loadingStep === "generating" && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse inline-block" />
+                    )}
+                    企画書生成
+                  </span>
+                </div>
               </div>
             ) : (
-              <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-md shadow-gray-100">
-                <div className="space-y-1">{renderMarkdown(document)}</div>
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-md shadow-gray-100 overflow-hidden">
+                <div className="px-6 py-6 sm:px-8 sm:py-8">
+                  {renderMarkdown(document)}
+                </div>
               </div>
             )}
           </div>
