@@ -99,7 +99,7 @@ async function generateProposal(analysis: Record<string, unknown>) {
 
   const res = await client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 4000,
+    max_tokens: 8000,
     system: `あなたは一流のビジネスコンサルタントです。
 提供された構造化分析データをもとに、投資家や経営陣が読んでも納得できる、実行可能で具体的な企画書を作成してください。
 
